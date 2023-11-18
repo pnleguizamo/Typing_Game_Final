@@ -6,6 +6,9 @@ Team member 1 "Pablo Leguizamo" | "Percentage of Contribution to The Project"
 Team member 2 "Nathan Thomas" | "Percentage of Contribution to The Project"
 */
 
+// gcc FinalProjectTemplate.c -o FinalProjectTemplate -lncurses
+// ./FinalProjectTemplate wordList.txt
+
 ////////////////////
 #include<stdio.h>
 #include <stdlib.h>
@@ -60,6 +63,7 @@ int main(int argc, char* argv[]){
 	char* wordlist[MAXWORDS];
 	int wordcount = read_words(wordlist, argv[1]);
 	int run = 1;
+	int difficulty = 2;
 
 
 	// Print wordlist for debugging reasons
@@ -69,36 +73,30 @@ int main(int argc, char* argv[]){
 	word wordGrid[VERTICAL_LIMIT][HORIZONTAL_LIMIT];
 	initializeArray(wordGrid);
 
-	// clock is time elapsed, t is a time variable
+	// time(null) is current time, t is a time variable
 	clock_t t; 
     t = time(NULL); 
-	// Function call here
-    // t = clock() - t; 
-    // double time_taken = ((double)t)/CLOCKS_PER_SEC;
 	
 	
 	char *guessString = (char *)malloc(50 * sizeof(char));
 	initscr();
-	// cbreak();
-	// echo();
-	// keypad(stdscr, TRUE);
-	// drawOutline(guessString);
-	// addWordToScreen(wordcount, wordlist, wordGrid);
-	// shiftWordsDown(wordGrid);
-
 	drawOutline(guessString);
+	addWordToScreen(wordcount, wordlist, wordGrid);
+	shiftWordsDown(wordGrid);
 	refresh();
 
-
+	
 
 	while(run){
-		while(t<time(NULL)){
+		while((double)t<time(NULL)){
 			clear();
-			mvprintw(14+VERTICAL_LIMIT, 14, "%ld", t);
 			addWordToScreen(wordcount, wordlist, wordGrid);
 			if(shiftWordsDown(wordGrid)){
 				run = 0;
 			}
+			// Add the amount of seconds in between each new word appearing
+			// t + 1 creates a new word every second
+			// t + 2 creates a new word every two seconds
 			t++;
 		}	
 		if(run == 0){
