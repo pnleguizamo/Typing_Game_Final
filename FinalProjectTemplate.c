@@ -148,7 +148,7 @@ long long findTime(struct timespec *timeStruct){
 // If the string exists, remove it from the array and let shiftWordsDown() handle removing it from the screen
 void removeWordFromGrid(struct word wordGrid[][HORIZONTAL_LIMIT], char guess[]){
 	for(int i = 0; i<HORIZONTAL_LIMIT; i++){
-		for(int j = VERTICAL_LIMIT; j>0; j--){
+		for(int j = VERTICAL_LIMIT-1; j>0; j--){
 			if(strcmp(guess, wordGrid[j][i].contents)==0){
 				strcpy(wordGrid[j][i].contents, "");
 				// mvprintw(VERTICAL_LIMIT + 12, 10, "%s", guess);
@@ -161,7 +161,7 @@ void removeWordFromGrid(struct word wordGrid[][HORIZONTAL_LIMIT], char guess[]){
 // Nullify everything in the 2D array because C is dumb and sometimes things exist in there otherwise
 void initializeArray(struct word wordGrid[][HORIZONTAL_LIMIT]){
 	for(int i = 0; i<HORIZONTAL_LIMIT; i++){
-		for(int j = VERTICAL_LIMIT; j>0; j--){
+		for(int j = VERTICAL_LIMIT-1; j>0; j--){
 			strcpy(wordGrid[j][i].contents, "");
 		}
 	}	
@@ -171,16 +171,17 @@ void initializeArray(struct word wordGrid[][HORIZONTAL_LIMIT]){
 // If a word object ever reaches the bottom of the 2D array, return 1 to kill the main while loop
 int shiftWordsDown(struct word wordGrid[][HORIZONTAL_LIMIT]){
 	for(int i = 0; i<HORIZONTAL_LIMIT; i++){
-		for(int j = VERTICAL_LIMIT; j>0; j--){
+		for(int j = VERTICAL_LIMIT-1; j>0; j--){
 			if(strcmp(wordGrid[j][i].contents, "")){
-				if(j+1>VERTICAL_LIMIT){
+				if(j+1>=VERTICAL_LIMIT){
 					// mvprintw(VERTICAL_LIMIT + 13, 10,"J: %d, i: %d", j, i);
 					// mvprintw(VERTICAL_LIMIT + 14, 10,"%s", wordGrid[j][i].contents);
 					// refresh();
 					// getch();
 					return 1;
 				}
-				wordGrid[j+1][i] = wordGrid[j][i];
+				if(j+1<VERTICAL_LIMIT)
+					wordGrid[j+1][i] = wordGrid[j][i];
 				mvprintw(j, i, "%s", wordGrid[j][i].contents);
 				strcpy(wordGrid[j][i].contents, "");
 				refresh();
