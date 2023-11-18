@@ -18,6 +18,8 @@ Team member 2 "Nathan Thomas" | "Percentage of Contribution to The Project"
 #include <math.h>
 #include <ctype.h>
 #include <time.h>
+#include <unistd.h>
+// #include <linux/time.h>
 #define MAXWORDS 1000
 #define WORDLENGTH 20
 #define HORIZONTAL_LIMIT 100
@@ -30,8 +32,6 @@ Team member 2 "Nathan Thomas" | "Percentage of Contribution to The Project"
 ////////////////////
 typedef struct word{
 	char contents[WORDLENGTH];
-	int xCoordinate;
-	int yCoordinate;
 	int length;
 }word; 
 
@@ -53,8 +53,9 @@ void initializeArray(struct word wordGrid[][HORIZONTAL_LIMIT]);
 void drawOutline(char guessString[]);
 void addWordToScreen(int wordcount, char* wordlist[], struct word wordGrid[][HORIZONTAL_LIMIT]);
 int shiftWordsDown(struct word wordGrid[][HORIZONTAL_LIMIT]); 
-void removeWordFromScreen(struct word wordGrid[][HORIZONTAL_LIMIT], char guess[]);
+void removeWordFromGrid(struct word wordGrid[][HORIZONTAL_LIMIT], char guess[]);
 
+long long findTime(struct timespec *timeStruct);
 
 int debugger = 0;
 
@@ -62,56 +63,74 @@ int main(int argc, char* argv[]){
 	srand(time(NULL));
 	char* wordlist[MAXWORDS];
 	int wordcount = read_words(wordlist, argv[1]);
-	int run = 1;
-	int difficulty = 2;
-
 
 	// Print wordlist for debugging reasons
 	// for(int i = 0; i<wordcount; i++)
 	// 	printf("%d: %s\n", i, wordlist[i]);
+
+	char *guessString = (char *)malloc(50 * sizeof(char));
 	
+	int run = 1;
+	int difficulty = 1000;	
+
 	word wordGrid[VERTICAL_LIMIT][HORIZONTAL_LIMIT];
 	initializeArray(wordGrid);
 
-	// time(null) is current time, t is a time variable
-	clock_t t; 
-    t = time(NULL); 
-	
-	
-	char *guessString = (char *)malloc(50 * sizeof(char));
+	struct timespec realTime, beginTime; 
+	long long t;
+
+	// Set up screen for the first frame
 	initscr();
 	drawOutline(guessString);
+	// Pause the program until user hits a key
+	mvprintw(VERTICAL_LIMIT+12, 40, "Hit any key to begin");
+	getch();
+	
+
+	clear();
 	addWordToScreen(wordcount, wordlist, wordGrid);
 	shiftWordsDown(wordGrid);
 	refresh();
-
 	
+	// Save the time that the program began, initialize the realTime timer, and assign a second value to the t variable
+	clock_gettime(CLOCK_REALTIME, &beginTime);
+	clock_gettime(CLOCK_REALTIME, &realTime);
+	t = findTime(&realTime);
+
 
 	while(run){
-		while((double)t<time(NULL)){
+		// Each new word created adds to the t variable
+		// As long as t < the current real time, more words must be added
+		while(t<findTime(&realTime)){
 			clear();
 			addWordToScreen(wordcount, wordlist, wordGrid);
-			if(shiftWordsDown(wordGrid)){
+			if(shiftWordsDown(wordGrid))
 				run = 0;
-			}
-			// Add the amount of seconds in between each new word appearing
-			// t + 1 creates a new word every second
-			// t + 2 creates a new word every two seconds
-			t++;
+			t+=difficulty;
+			// mvprintw(VERTICAL_LIMIT+12, 12, "%d", difficulty);
 		}	
-		if(run == 0){
+		if(run == 0)
 			break;
-		}
+		// difficulty variable is decreased by 5% every time the user guesses
+		// By adding less difficulty to the t variable, new words appear more often and the game gets harder
+		// difficulty has a hard minimum of 400ms, so the fastest words can appear is 1 every 400ms
+		difficulty = difficulty > 400 ? difficulty*0.95 : difficulty;
+		
 		drawOutline(guessString);
 		getstr(guessString);
-		removeWordFromScreen(wordGrid, guessString);
+		removeWordFromGrid(wordGrid, guessString);
 	}
 	
 	
 	// getch();
 	fflush(stdout);
     endwin();
-	
+
+	// Calculate how much time the game took by subtracting (currentTime - beginningTime)
+	long long secondsTaken = (findTime(&realTime)/1000) - beginTime.tv_sec;
+	printf("This game took %lld seconds\n", secondsTaken);
+
+	free(guessString);
 	return 0;
 }
 
@@ -119,8 +138,15 @@ int main(int argc, char* argv[]){
 //User Defined Functions' Definition//
 /////////////////////////////////////
 
-void removeWordFromScreen(struct word wordGrid[][HORIZONTAL_LIMIT], char guess[]){
-	
+// Pass a timespec object pointer to findTime() to refresh the real time and return a long long with a millisecond value
+long long findTime(struct timespec *timeStruct){
+	clock_gettime(CLOCK_REALTIME, timeStruct);
+	return ((*timeStruct).tv_sec ) * 1000 + ((*timeStruct).tv_nsec) / 1000000;
+}
+
+// Pass the 2D array and the guess string to loop through the array and check if the guess string exists in it
+// If the string exists, remove it from the array and let shiftWordsDown() handle removing it from the screen
+void removeWordFromGrid(struct word wordGrid[][HORIZONTAL_LIMIT], char guess[]){
 	for(int i = 0; i<HORIZONTAL_LIMIT; i++){
 		for(int j = VERTICAL_LIMIT; j>0; j--){
 			if(strcmp(guess, wordGrid[j][i].contents)==0){
@@ -132,6 +158,7 @@ void removeWordFromScreen(struct word wordGrid[][HORIZONTAL_LIMIT], char guess[]
 	}	
 }
 
+// Nullify everything in the 2D array because C is dumb and sometimes things exist in there otherwise
 void initializeArray(struct word wordGrid[][HORIZONTAL_LIMIT]){
 	for(int i = 0; i<HORIZONTAL_LIMIT; i++){
 		for(int j = VERTICAL_LIMIT; j>0; j--){
@@ -140,9 +167,9 @@ void initializeArray(struct word wordGrid[][HORIZONTAL_LIMIT]){
 	}	
 }
 
+// Loop through the 2D array. If there is a word object at the index, shift that object down the array 1 row, and print it to the screen
+// If a word object ever reaches the bottom of the 2D array, return 1 to kill the main while loop
 int shiftWordsDown(struct word wordGrid[][HORIZONTAL_LIMIT]){
-	
-	
 	for(int i = 0; i<HORIZONTAL_LIMIT; i++){
 		for(int j = VERTICAL_LIMIT; j>0; j--){
 			if(strcmp(wordGrid[j][i].contents, "")){
@@ -160,10 +187,12 @@ int shiftWordsDown(struct word wordGrid[][HORIZONTAL_LIMIT]){
 			}
 		}
 	}
-	
 	return 0;
 }
 
+// Determine a random place at the top of the screen to place a random word from the wordlist
+// Take into account the length of the string when placing it, so that it's in bounds
+// Copy the word into the 2D array at the appropriate index
 void addWordToScreen(int wordcount, char* wordlist[], struct word wordGrid[][HORIZONTAL_LIMIT]){
 	int index = rand()%wordcount;
 	int initialX = (rand()%HORIZONTAL_LIMIT)+1;	
