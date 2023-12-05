@@ -42,7 +42,7 @@ typedef struct word{
 //tehm below the main function////
 /////////////////////////////////
 
-
+void appendWords(char* file_name);
 int read_words(char* WL[MAXWORDS], char* file_name);
 void trimws(char* str);
 
@@ -62,6 +62,7 @@ int debugger = 0;
 int main(int argc, char* argv[]){
 	srand(time(NULL));
 	char* wordlist[MAXWORDS];
+	appendWords(argv[1]);
 	int wordcount = read_words(wordlist, argv[1]);
 
 	// Print wordlist for debugging reasons
@@ -128,7 +129,7 @@ int main(int argc, char* argv[]){
 
 	// Calculate how much time the game took by subtracting (currentTime - beginningTime)
 	long long secondsTaken = (findTime(&realTime)/1000) - beginTime.tv_sec;
-	printf("This game took %lld seconds\n", secondsTaken);
+	printf("\nThis game took %lld seconds\n", secondsTaken);
 
 	free(guessString);
 	return 0;
@@ -138,10 +139,32 @@ int main(int argc, char* argv[]){
 //User Defined Functions' Definition//
 /////////////////////////////////////
 
+// Ask the user if they want to append to the word text file
+void appendWords(char* file_name){
+	int edit = 0;
+	char newWord[50];
+
+	printf("Type 1 to append to the word list or type 0 to play: ");
+	scanf("%d", &edit);
+	FILE* fp = fopen(file_name, "a");
+
+	while(edit){
+		printf("Enter a new word for the list: ");
+		scanf("%s", newWord);
+		fputs("\n", fp);
+		fputs(newWord, fp);
+		printf("Type 1 to append to the word list or type 0 to play: ");
+		scanf("%d", &edit);
+	}
+
+	fclose(fp);
+	
+}
+
 // Pass a timespec object pointer to findTime() to refresh the real time and return a long long with a millisecond value
 long long findTime(struct timespec *timeStruct){
 	clock_gettime(CLOCK_REALTIME, timeStruct);
-	return ((*timeStruct).tv_sec ) * 1000 + ((*timeStruct).tv_nsec) / 1000000;
+	return (timeStruct->tv_sec) * 1000 + (timeStruct->tv_nsec) / 1000000;
 }
 
 // Pass the 2D array and the guess string to loop through the array and check if the guess string exists in it
